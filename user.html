@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Shop</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    header { background: #1ea21e; color: #fff; padding: 12px; text-align: center; font-size: 22px; font-weight: bold; }
+    nav { background: #1ea21e; color: white; padding: 10px; display: flex; justify-content: space-around; }
+    nav a { color: white; text-decoration: none; font-weight: bold; }
+    .search { margin: 15px; display: flex; justify-content: center; }
+    .search input { width: 90%; padding: 10px; border: 2px solid #1ea21e; border-radius: 25px; font-size: 16px; }
+
+    /* Score Bar */
+    .score-text { text-align: center; font-size: 14px; color: #333; margin: 5px 0; }
+    .score-bar { width: 90%; margin: 0 auto 15px; background: #ddd; border-radius: 20px; overflow: hidden; height: 18px; }
+    .score-fill { height: 100%; background: linear-gradient(90deg, #1ea21e, #4CAF50); transition: width 0.5s ease; }
+
+    /* Offer Banner */
+    .offer-banner { margin: 15px; border-radius: 12px; overflow: hidden; box-shadow: 0 3px 8px rgba(0,0,0,0.2); position: relative; }
+    .offer-banner img { width: 100%; height: 160px; object-fit: cover; display:block; }
+    .offer-banner-text {
+      position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); 
+      color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 18px; font-weight: bold;
+    }
+
+    /* Products */
+    .products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; }
+    .card { background: #fff; border-radius: 12px; padding: 10px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .card img { max-width: 100%; height: 120px; object-fit: contain; }
+    .card h3 { margin: 10px 0 5px; }
+    .price { color: green; font-size: 18px; font-weight: bold; }
+    .stock { color: #555; margin: 5px 0; }
+    .btn-whatsapp { display:inline-block; margin-top:8px; padding:8px 12px; background:#25D366; color:white;
+                    border-radius:8px; text-decoration:none; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <header>WhatsApp Shop</header>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">Products</a>
+    <a href="#">Cart</a>
+  </nav>
+
+  <div class="search">
+    <input type="text" id="searchBar" placeholder="Search for products...">
+  </div>
+
+  <!-- ✅ Fixed Offer Banner with given URL -->
+  <div class="offer-container">
+    <div class="offer-banner">
+      <img src="https://i.ibb.co/ynS93Wds/image-search-1755410764457-copy-800x500.jpg" alt="Special Offer">
+      <div class="offer-banner-text">Special Deals Today!</div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="score-text">Today’s Offer Progress</div>
+  <div class="score-bar">
+    <div class="score-fill" id="scoreFill"></div>
+  </div>
+
+  <!-- Products -->
+  <div class="products" id="productList"></div>
+
+  <!-- Firebase Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+    // ✅ Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDUAGedKFJbmcyuRnBuxVY7qRnU8wGmGLY",
+      authDomain: "whatsapp-20b20.firebaseapp.com",
+      databaseURL: "https://whatsapp-20b20-default-rtdb.firebaseio.com",
+      projectId: "whatsapp-20b20",
+      storageBucket: "whatsapp-20b20.firebasestorage.app",
+      messagingSenderId: "638296949785",
+      appId: "1:638296949785:web:8db5f1a6be6c8a894b9688"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 🔥 Load Products + WhatsApp button
+    const productList = document.getElementById("productList");
+    const searchBar = document.getElementById("searchBar");
+    const productsRef = ref(db, "products");
+    const adminPhoneRef = ref(db, "settings/adminPhone");
+
+    let adminPhone = ""; // Store admin phone number from DB
+
+    onValue(adminPhoneRef, (snapshot) => {
+      adminPhone = snapshot.val() || "";
+    });
+
+    onValue(productsRef, (snapshot) => {
+      productList.innerHTML = "";
+      snapshot.forEach((child) => {
+        const data = child.val();
+        const q = searchBar.value.toLowerCase();
+        if (!q || data.name.toLowerCase().includes(q) || data.category.toLowerCase().includes(q)) {
+          const card = document.createElement("div");
+          card.className = "card";
+
+          // ✅ WhatsApp link full product details
+          const message = `🛒 New Order Request!
+--------------------------
+📦 Product: *${data.name}*
+💰 Price: ₹${data.price}
+📦 Stock: ${data.stock}
+🏷️ Category: ${data.category || "N/A"}
+🖼️ Image: ${data.image}
+
+Please confirm availability.`;
+
+          const whatsappLink = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+
+          card.innerHTML = `
+            <img src="${data.image}" alt="${data.name}">
+            <h3>${data.name}</h3>
+            <div class="price">₹${data.price}</div>
+            <div class="stock">In stock: ${data.stock}</div>
+            <a href="${whatsappLink}" target="_blank" class="btn-whatsapp">Buy on WhatsApp</a>
+          `;
+          productList.appendChild(card);
+        }
+      });
+    });
+
+    searchBar.addEventListener("input", () => {
+      onValue(productsRef, () => {}, { onlyOnce: true });
+    });
+
+    // 🔥 Progress Bar
+    const scoreFill = document.getElementById("scoreFill");
+    onValue(productsRef, (snapshot) => {
+      let total = 0, count = 0;
+      snapshot.forEach((child) => {
+        const p = child.val();
+        if (p.offer && p.offer.enabled) {
+          total += Number(p.offer.progress || 0);
+          count++;
+        }
+      });
+      const avg = count ? Math.round(total / count) : 0;
+      scoreFill.style.width = avg + "%";
+    });
+  </script>
+</body>
+</html>
